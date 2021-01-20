@@ -6,14 +6,24 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
   workflow_dispatch:
+  schedule:
+    - cron:  '7 8 1 * *'
+
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   openj9:
+    strategy:
+      fail-fast: false
+      matrix:
+        impl: ['openj9', 'hotspot']
+        release: ['latest']
+        include:
+          - impl: 'openj9'
+            release: 'ea'
+
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -24,19 +34,7 @@ jobs:
       with:
         java-version: '8' # The OpenJDK version to make available on the path
         architecture: 'x64' # defaults to 'x64'
-        openjdk_impl: 'openj9'
+        openjdk_impl: ${{ matrix.impl }}
+        release-type: ${{ matrix.release }}
     - run: java -version
     - run: ./gradlew assembleRelease --stacktrace
-  hotspot:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-    - uses: actions/checkout@v2
-    - uses: joschi/setup-jdk@v2
-      with:
-        java-version: '8' # The OpenJDK version to make available on the path
-        architecture: 'x64' # defaults to 'x64'
-        openjdk_impl: 'hotspot'
-    - run: ./gradlew assembleRelease
